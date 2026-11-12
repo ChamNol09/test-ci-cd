@@ -23,7 +23,7 @@
     "jest": "^30.5.2",
     "superagent": "^8.1.2",
     "supertest": "^6.3.4",
-    "ts-jest": "^25.5.1",
+    "ts-jest": "^29.4.15",
     "ts-node": "^10.9.1",
     "typescript": "^5.4.4"
   },
