@@ -39,11 +39,11 @@ jobs:
 
           chmod 600 "$HOME/.ssh/id_ed25519"
 
-          ssh-keyscan -H -T 10 "$VPS_HOST" >> "$HOME/.ssh/known_hosts"
+          ssh-keyscan -H -T 10 3.106.222.112 >> "$HOME/.ssh/known_hosts"
 
           ssh -i "$HOME/.ssh/id_ed25519" \
             -o IdentitiesOnly=yes \
-            "$SSH_USER@$VPS_HOST" \
+            "$SSH_USER@3.106.222.112" \
             "echo 'SSH connection successful'"
 
 
