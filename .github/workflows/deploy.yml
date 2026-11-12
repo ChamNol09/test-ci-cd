@@ -1,0 +1,60 @@
+
+name: Deploy Project
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          VPS_HOST: ${{ secrets.MY_VPS_SECRET }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
+
+      - name: Create deployment directory
+        env:
+          SSH_USER: ${{ secrets.SSH_USER }}
+          VPS_HOST: ${{ secrets.MY_VPS_SECRET }}
+        run: |
+          ssh "$SSH_USER@$VPS_HOST" "mkdir -p ~/node-app"
+
+      - name: Upload application
+        env:
+          SSH_USER: ${{ secrets.SSH_USER }}
+          VPS_HOST: ${{ secrets.MY_VPS_SECRET }}
+        run: |
+          scp -r dist package.json package-lock.json \
+            "$SSH_USER@$VPS_HOST:~/node-app/"
+
+      - name: Install production dependencies and restart
+        env:
+          SSH_USER: ${{ secrets.SSH_USER }}
+          VPS_HOST: ${{ secrets.MY_VPS_SECRET }}
+        run: |
+          ssh "$SSH_USER@$VPS_HOST" \
+            "cd ~/node-app && npm ci --omit=dev && pm2 restart YOUR_PM2_APP_NAME --update-env"
