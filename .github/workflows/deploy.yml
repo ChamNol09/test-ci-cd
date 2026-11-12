@@ -26,30 +26,36 @@ jobs:
       - name: Build project
         run: npm run build
 
+      
       - name: Configure SSH
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           VPS_HOST: ${{ secrets.MY_VPS_SECRET }}
+          SSH_USER: ${{ secrets.SSH_USER }}
         run: |
-          mkdir -p ~/.ssh
-          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
+          mkdir -p "$HOME/.ssh"
+
+          printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > "$HOME/.ssh/id_ed25519"
+
+          chmod 600 "$HOME/.ssh/id_ed25519"
+
+          ssh-keyscan -H -T 10 "$VPS_HOST" >> "$HOME/.ssh/known_hosts"
+
+          ssh -i "$HOME/.ssh/id_ed25519" \
+            -o IdentitiesOnly=yes \
+            "$SSH_USER@$VPS_HOST" \
+            "echo 'SSH connection successful'"
+
 
       - name: Create deployment directory
         env:
           SSH_USER: ${{ secrets.SSH_USER }}
           VPS_HOST: ${{ secrets.MY_VPS_SECRET }}
         run: |
-          ssh "$SSH_USER@$VPS_HOST" "mkdir -p ~/node-app"
-
-      - name: Upload application
-        env:
-          SSH_USER: ${{ secrets.SSH_USER }}
-          VPS_HOST: ${{ secrets.MY_VPS_SECRET }}
-        run: |
-          scp -r dist package.json package-lock.json \
-            "$SSH_USER@$VPS_HOST:~/node-app/"
+          ssh -i ~/.ssh/id_ed25519 \
+            -o IdentitiesOnly=yes \
+            "$SSH_USER@$VPS_HOST" \
+            "mkdir -p ~/node-app"
 
       - name: Install production dependencies and restart
         env:
